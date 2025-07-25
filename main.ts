@@ -1,4 +1,4 @@
-import { Array, Chunk, Duration, Effect, Schedule } from "effect";
+import { Array, Chunk, Duration, Effect, pipe, Schedule } from "effect";
 
 const stampOfSchedule = (
   schedule: Schedule.Schedule<unknown>,
@@ -130,6 +130,36 @@ if (import.meta.vitest) {
       #9: 2000ms
       #10: 1000ms
       ..."
+    `);
+  });
+}
+
+// 「100msからExponential Backoffでやる、ただし最大で5秒まで、30秒を初めて越えるまでリトライする。」
+
+const schedule = pipe(
+  Schedule.union(
+    Schedule.exponential("100 millis"),
+    Schedule.spaced("5 seconds"),
+  ),
+  Schedule.intersect(Schedule.recurUpTo("30 seconds")),
+);
+
+if (import.meta.vitest) {
+  const { it } = import.meta.vitest;
+  it("complex schedule", ({ expect }) => {
+    expect(stampOfSchedule(schedule, 0, 100)).toMatchInlineSnapshot(`
+      "#1: 100ms
+      #2: 200ms
+      #3: 400ms
+      #4: 800ms
+      #5: 1600ms
+      #6: 3200ms
+      #7: 5000ms
+      #8: 5000ms
+      #9: 5000ms
+      #10: 5000ms
+      #11: 5000ms
+      (end)"
     `);
   });
 }
